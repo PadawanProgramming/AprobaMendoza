@@ -1,0 +1,41 @@
+{
+  "entities": {
+    "guide": {
+      "title": "Document Resource",
+      "description": "A PDF resource for students",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The name of the guide"
+        },
+        "subject": {
+          "type": "string",
+          "enum": ["Matemática", "Física", "Programación e IA", "Técnicas de Estudio"],
+          "description": "The category of the resource"
+        },
+        "topic": {
+          "type": "string",
+          "description": "The specific topic covered"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "The external link to the PDF file"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp of creation"
+        }
+      },
+      "required": ["title", "subject", "url", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/guides/{guideId}": {
+      "schema": "guide",
+      "description": "Collection of educational PDF guides"
+    }
+  }
+}
