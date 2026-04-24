@@ -30,12 +30,39 @@
         }
       },
       "required": ["title", "subject", "url", "createdAt"]
+    },
+    "workshop": {
+      "title": "Workshop/Course",
+      "description": "An online educational workshop",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "coverUrl": { "type": "string", "format": "uri" },
+        "videoUrl": { "type": "string", "format": "uri" },
+        "syllabus": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string" },
+              "content": { "type": "string" }
+            }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "description", "createdAt"]
     }
   },
   "firestore": {
     "/guides/{guideId}": {
       "schema": "guide",
       "description": "Collection of educational PDF guides"
+    },
+    "/workshops/{workshopId}": {
+      "schema": "workshop",
+      "description": "Collection of available workshops/courses"
     }
   }
 }

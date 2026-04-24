@@ -10,9 +10,9 @@ service cloud.firestore {
     // Note: If using hardcoded login without Firebase Auth, rules cannot distinguish the admin.
     // In this environment, we'll allow write for demonstration purposes, 
     // but RECOMMEND using Firebase Auth for production.
-    match /guides/{guideId} {
+    match /workshops/{workshopId} {
       allow read: if true;
-      allow write: if true; // In production, replace with: if request.auth != null && request.auth.token.email == 'admin@example.com';
+      allow write: if true; 
     }
   }
 }

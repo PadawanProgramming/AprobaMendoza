@@ -36,8 +36,26 @@ import {
   orderBy, 
   deleteDoc, 
   doc,
+  getDoc,
   Timestamp
 } from "firebase/firestore";
+import { useParams } from "react-router-dom";
+
+// --- Types ---
+interface WorkshopSection {
+  title: string;
+  content: string;
+}
+
+interface Workshop {
+  id?: string;
+  title: string;
+  description: string;
+  coverUrl?: string;
+  videoUrl?: string;
+  syllabus: WorkshopSection[];
+  createdAt: any;
+}
 import { db } from "./firebase";
 
 // --- Constants & Styles ---
@@ -584,37 +602,245 @@ const ModalidadPage = () => (
   </motion.div>
 );
 
-const TalleresPage = () => (
-  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="py-24 px-6 max-w-7xl mx-auto min-h-[60vh]">
-    <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-blue-600 mb-12 transition-colors">
-      <ArrowLeft className="w-5 h-5" /> Volver
-    </Link>
-    <div className="bg-gray-900 rounded-[3rem] p-12 text-white text-center mb-16">
-      <h1 className="text-4xl md:text-6xl font-bold mb-6">Talleres de <span className="text-blue-400">Alto Rendimiento</span></h1>
-      <p className="text-gray-400 max-w-2xl mx-auto text-lg">Más allá de las materias, te enseño el sistema para que dejes de sufrir con el estudio.</p>
-    </div>
-    <div className="grid md:grid-cols-2 gap-12">
-      <div className="p-10 bg-white border border-gray-100 rounded-[2.5rem] shadow-sm">
-        <Brain className="w-12 h-12 text-blue-600 mb-6" />
-        <h2 className="text-2xl font-bold mb-4">Técnicas de Estudio</h2>
-        <ul className="space-y-4 text-gray-600">
-          <li className="flex gap-2"><CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" /> Memorización activa vs Pasiva</li>
-          <li className="flex gap-2"><CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" /> Método Feynman para entender conceptos</li>
-          <li className="flex gap-2"><CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" /> Planificación por bloques de tiempo</li>
-        </ul>
+const TalleresPage = () => {
+  const [workshops, setWorkshops] = useState<Workshop[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(collection(db, "workshops"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setWorkshops(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Workshop)));
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="py-24 px-6 max-w-7xl mx-auto min-h-[60vh]">
+      <Link to="/" className="inline-flex items-center gap-2 text-gray-400 hover:text-blue-600 mb-12 transition-colors group">
+        <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Volver
+      </Link>
+      <div className="bg-gray-900 rounded-[3rem] p-12 text-white text-center mb-16 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/20 blur-[100px] rounded-full" />
+        <div className="relative z-10">
+          <h1 className="text-4xl md:text-6xl font-bold mb-6">Talleres de <span className="text-blue-400">Alto Rendimiento</span></h1>
+          <p className="text-gray-400 max-w-2xl mx-auto text-lg">Plataforma de formación online: Aprende técnicas, herramientas y metodologías para potenciar tu estudio.</p>
+        </div>
       </div>
-      <div className="p-10 bg-white border border-gray-100 rounded-[2.5rem] shadow-sm">
-        <Cpu className="w-12 h-12 text-blue-600 mb-6" />
-        <h2 className="text-2xl font-bold mb-4">IA para Estudiantes</h2>
-        <ul className="space-y-4 text-gray-600">
-          <li className="flex gap-2"><CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" /> Prompt engineering para aprender</li>
-          <li className="flex gap-2"><CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" /> Herramientas de resumen inteligentes</li>
-          <li className="flex gap-2"><CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" /> Generación de ejercicios personalizados</li>
-        </ul>
-      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-20">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      ) : workshops.length === 0 ? (
+        <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-gray-200">
+          <Laptop className="w-16 h-16 text-gray-200 mx-auto mb-4" />
+          <p className="text-gray-500 font-medium text-lg">Próximamente nuevos talleres...</p>
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
+          {workshops.map((workshop) => (
+            <Link 
+              key={workshop.id} 
+              to={`/talleres/${workshop.id}`}
+              className="group bg-white rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col"
+            >
+              <div className="aspect-video relative overflow-hidden bg-gray-100">
+                {workshop.coverUrl ? (
+                  <img src={workshop.coverUrl} alt={workshop.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-200">
+                    <Laptop className="w-12 h-12" />
+                  </div>
+                )}
+                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-blue-600 uppercase tracking-widest shadow-sm">
+                  Online
+                </div>
+              </div>
+              <div className="p-8 flex-grow flex flex-col">
+                <h3 className="text-2xl font-bold mb-4 group-hover:text-blue-600 transition-colors line-clamp-2">{workshop.title}</h3>
+                <p className="text-gray-600 text-sm leading-relaxed mb-8 line-clamp-3">
+                  {workshop.description}
+                </p>
+                <div className="mt-auto flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                    <BookOpen className="w-4 h-4" />
+                    {workshop.syllabus.length} Secciones
+                  </div>
+                  <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all transform group-hover:rotate-45">
+                    <ArrowLeft className="w-5 h-5 rotate-180" />
+                  </div>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
+};
+
+const WorkshopDetailPage = () => {
+  const { workshopId } = useParams();
+  const [workshop, setWorkshop] = useState<Workshop | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeAccordion, setActiveAccordion] = useState<number | null>(0);
+
+  useEffect(() => {
+    const fetchWorkshop = async () => {
+      if (!workshopId) return;
+      try {
+        const docRef = doc(db, "workshops", workshopId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setWorkshop({ id: docSnap.id, ...docSnap.data() } as Workshop);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchWorkshop();
+  }, [workshopId]);
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
     </div>
-  </motion.div>
-);
+  );
+
+  if (!workshop) return (
+    <div className="min-h-screen flex flex-col items-center justify-center text-center px-6">
+      <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mb-6">
+        <ArrowLeft className="w-10 h-10" />
+      </div>
+      <h1 className="text-3xl font-bold mb-4">Taller no encontrado</h1>
+      <Link to="/talleres" className="text-blue-600 font-bold hover:underline">Volver a los talleres</Link>
+    </div>
+  );
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pb-24">
+      {/* Header / Hero */}
+      <div className="bg-gray-900 pt-32 pb-24 px-6">
+        <div className="max-w-7xl mx-auto">
+          <Link to="/talleres" className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-10 transition-colors group">
+            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Volver a Talleres
+          </Link>
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <span className="inline-block px-3 py-1 bg-blue-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-full mb-6">
+                Especialización Online
+              </span>
+              <h1 className="text-4xl md:text-6xl font-bold text-white mb-8 leading-tight">
+                {workshop.title}
+              </h1>
+              <p className="text-gray-400 text-lg md:text-xl leading-relaxed mb-10">
+                {workshop.description}
+              </p>
+              <div className="flex flex-wrap gap-6 text-white/60 text-sm font-medium">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-blue-500" /> Certificado de asistencia
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-blue-500" /> Material descargable
+                </div>
+              </div>
+            </div>
+
+            <div className="relative group">
+              <div className="aspect-video rounded-[2.5rem] overflow-hidden bg-black/50 border border-white/10 shadow-2xl relative">
+                {workshop.videoUrl ? (
+                  <iframe 
+                    src={workshop.videoUrl} 
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
+                ) : workshop.coverUrl ? (
+                  <img src={workshop.coverUrl} alt="Portada" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-white/10">
+                    <Laptop className="w-24 h-24" />
+                  </div>
+                )}
+              </div>
+              {/* Floating accents */}
+              <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-blue-600/30 blur-[60px] rounded-full -z-10" />
+              <div className="absolute -top-6 -left-6 w-24 h-24 bg-indigo-600/30 blur-[50px] rounded-full -z-10" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Syllabus & Content */}
+      <div className="max-w-4xl mx-auto px-6 mt-20">
+        <div className="flex items-center gap-3 mb-10">
+          <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+            <BookOpen className="w-6 h-6" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 font-sans">Temario y Plan de Estudios</h2>
+        </div>
+
+        <div className="space-y-4">
+          {workshop.syllabus.map((section, idx) => (
+            <div 
+              key={idx} 
+              className={`bg-white rounded-3xl border transition-all duration-300 ${activeAccordion === idx ? 'border-blue-200 ring-4 ring-blue-50' : 'border-gray-100 hover:border-gray-200'}`}
+            >
+              <button 
+                onClick={() => setActiveAccordion(activeAccordion === idx ? null : idx)}
+                className="w-full px-8 py-6 flex items-center justify-between text-left group"
+              >
+                <div className="flex items-center gap-4">
+                  <span className="w-8 h-8 rounded-lg bg-gray-50 text-gray-400 font-bold text-xs flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                    0{idx + 1}
+                  </span>
+                  <h3 className="font-bold text-gray-800 text-lg">{section.title}</h3>
+                </div>
+                <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${activeAccordion === idx ? 'rotate-180 text-blue-600' : ''}`} />
+              </button>
+              
+              <AnimatePresence>
+                {activeAccordion === idx && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-8 pb-8 pt-2">
+                       <div className="h-px bg-gray-100 w-full mb-6" />
+                       <div className="whitespace-pre-wrap text-gray-600 leading-relaxed text-sm lg:text-base">
+                        {section.content}
+                       </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ))}
+        </div>
+
+        {/* Action Bar */}
+        <div className="mt-16 bg-blue-50 rounded-[2.5rem] p-10 flex flex-col md:flex-row items-center justify-between gap-8 border border-blue-100">
+          <div>
+            <h4 className="text-xl font-bold text-blue-900 mb-2">¿Te interesa este taller?</h4>
+            <p className="text-blue-700/80">Inscríbete ahora y potencia tus habilidades de estudio.</p>
+          </div>
+          <a 
+            href={`https://wa.me/5492617204802?text=${encodeURIComponent(`Hola! Me interesa el taller: ${workshop.title}`)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-2 bg-[#25D366] text-white px-8 py-4 rounded-2xl font-bold hover:bg-[#128C7E] transition-all shadow-xl shadow-green-100"
+          >
+            <Send className="w-5 h-5" /> Inscribirme vía WhatsApp
+          </a>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
 
 const RecursosPage = () => {
   const [guides, setGuides] = useState<any[]>([]);
@@ -732,8 +958,22 @@ const LoginPage = () => {
 const AdminDashboard = () => {
   const { isAdmin, logout } = useAuth();
   const [guides, setGuides] = useState<any[]>([]);
-  const [newGuide, setNewGuide] = useState({ title: "", subject: "Matemática", topic: "", url: "" });
+  const [workshops, setWorkshops] = useState<Workshop[]>([]);
+  
+  const [tab, setTab] = useState<"guides" | "workshops">("guides");
   const [loading, setLoading] = useState(false);
+  
+  // States for new items
+  const [newGuide, setNewGuide] = useState({ title: "", subject: "Matemática", topic: "", url: "" });
+  const [newWorkshop, setNewWorkshop] = useState<Workshop>({
+    title: "",
+    description: "",
+    coverUrl: "",
+    videoUrl: "",
+    syllabus: [{ title: "", content: "" }],
+    createdAt: null
+  });
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -741,32 +981,53 @@ const AdminDashboard = () => {
       navigate("/login");
       return;
     }
-    const q = query(collection(db, "guides"), orderBy("createdAt", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setGuides(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-    return () => unsubscribe();
+    
+    const unsubscribeGuides = onSnapshot(query(collection(db, "guides"), orderBy("createdAt", "desc")), (s) => 
+      setGuides(s.docs.map(d => ({ id: d.id, ...d.data() })))
+    );
+    
+    const unsubscribeWorkshops = onSnapshot(query(collection(db, "workshops"), orderBy("createdAt", "desc")), (s) => 
+      setWorkshops(s.docs.map(d => ({ id: d.id, ...d.data() } as Workshop)))
+    );
+
+    return () => {
+      unsubscribeGuides();
+      unsubscribeWorkshops();
+    };
   }, [isAdmin, navigate]);
 
-  const handleAdd = async (e: React.FormEvent) => {
+  const handleAddGuide = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await addDoc(collection(db, "guides"), {
-        ...newGuide,
-        createdAt: Timestamp.now()
-      });
+      await addDoc(collection(db, "guides"), { ...newGuide, createdAt: Timestamp.now() });
       setNewGuide({ title: "", subject: "Matemática", topic: "", url: "" });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm("¿Estás seguro de que deseas eliminar este recurso?")) {
-      await deleteDoc(doc(db, "guides", id));
+  const handleAddWorkshop = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await addDoc(collection(db, "workshops"), { 
+        ...newWorkshop, 
+        syllabus: newWorkshop.syllabus.filter(s => s.title.trim()),
+        createdAt: Timestamp.now() 
+      });
+      setNewWorkshop({
+        title: "",
+        description: "",
+        coverUrl: "",
+        videoUrl: "",
+        syllabus: [{ title: "", content: "" }],
+        createdAt: null
+      });
+    } catch (err) { console.error(err); } finally { setLoading(false); }
+  };
+
+  const handleDelete = async (coll: string, id: string) => {
+    if (window.confirm("¿Estás seguro de que deseas eliminar este item?")) {
+      await deleteDoc(doc(db, coll, id));
     }
   };
 
@@ -777,121 +1038,178 @@ const AdminDashboard = () => {
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
         <h1 className="text-3xl font-bold flex items-center gap-3">
           <Settings className="w-8 h-8 text-blue-600" />
-          Dashboard de Recursos Gratis
+          Panel Administrativo
         </h1>
-        <button 
-          onClick={() => { logout(); navigate("/"); window.location.reload(); }} 
-          className="text-red-500 font-bold flex items-center gap-2 hover:bg-red-50 border border-red-100 px-6 py-3 rounded-2xl transition-all"
-        >
-          <LogOut className="w-5 h-5" /> Cerrar Sesión
-        </button>
+        <div className="flex items-center gap-4">
+          <div className="bg-gray-100 p-1.5 rounded-2xl flex gap-2">
+            <button 
+              onClick={() => setTab("guides")}
+              className={`px-6 py-3 rounded-xl text-sm font-bold transition-all ${tab === 'guides' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Recursos
+            </button>
+            <button 
+              onClick={() => setTab("workshops")}
+              className={`px-6 py-3 rounded-xl text-sm font-bold transition-all ${tab === 'workshops' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Talleres
+            </button>
+          </div>
+          <button 
+            onClick={() => { logout(); navigate("/"); window.location.reload(); }} 
+            className="text-red-500 font-bold flex items-center gap-2 hover:bg-red-50 border border-red-100 px-6 py-3 rounded-2xl transition-all"
+          >
+            <LogOut className="w-5 h-5" /> Salir 
+          </button>
+        </div>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-12">
-        {/* Creation Form */}
-        <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm flex flex-col">
-          <h2 className="text-xl font-bold mb-8 flex items-center gap-2 text-gray-800">
-            <Plus className="w-6 h-6 text-blue-600" /> Subir Nueva Guía PDF
-          </h2>
-          <form onSubmit={handleAdd} className="space-y-5">
-            <div>
-              <label className="text-xs font-bold uppercase text-gray-400 ml-2 mb-1 block">Título del Documento</label>
-              <input 
-                type="text" placeholder="Ej: Guía Básica de Álgebra" required
-                className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-[#FAFAFA] outline-none focus:ring-2 focus:ring-blue-600 transition-all"
-                value={newGuide.title} onChange={e => setNewGuide({...newGuide, title: e.target.value})}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      {tab === "guides" ? (
+        <div className="grid lg:grid-cols-2 gap-12">
+          {/* Guides Form */}
+          <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm">
+            <h2 className="text-xl font-bold mb-8 flex items-center gap-2 text-gray-800">
+              <Plus className="w-6 h-6 text-blue-600" /> Nueva Guía PDF
+            </h2>
+            <form onSubmit={handleAddGuide} className="space-y-5">
               <div>
-                <label className="text-xs font-bold uppercase text-gray-400 ml-2 mb-1 block">Materia</label>
-                <select 
-                  className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-[#FAFAFA] outline-none focus:ring-2 focus:ring-blue-600 transition-all font-medium"
-                  value={newGuide.subject} onChange={e => setNewGuide({...newGuide, subject: e.target.value})}
-                >
-                  <option>Matemática</option>
-                  <option>Física</option>
-                  <option>Programación e IA</option>
-                  <option>Técnicas de Estudio</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-bold uppercase text-gray-400 ml-2 mb-1 block">Tema Específico</label>
+                <label className="text-xs font-bold uppercase text-gray-400 ml-2 mb-1 block">Título</label>
                 <input 
-                  type="text" placeholder="Ej: Derivadas"
+                  type="text" placeholder="Ej: Guía de Física" required
                   className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-[#FAFAFA] outline-none focus:ring-2 focus:ring-blue-600 transition-all"
-                  value={newGuide.topic} onChange={e => setNewGuide({...newGuide, topic: e.target.value})}
+                  value={newGuide.title} onChange={e => setNewGuide({...newGuide, title: e.target.value})}
                 />
               </div>
-            </div>
-            <div>
-              <label className="text-xs font-bold uppercase text-gray-400 ml-2 mb-1 block">URL de Descarga (PDF)</label>
-              <input 
-                type="url" placeholder="Enlace de OneDrive, Google Drive, etc." required
-                className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-[#FAFAFA] outline-none focus:ring-2 focus:ring-blue-600 transition-all"
-                value={newGuide.url} onChange={e => setNewGuide({...newGuide, url: e.target.value})}
-              />
-            </div>
-            <button 
-              type="submit" 
-              disabled={loading}
-              className="w-full bg-blue-600 text-white font-bold py-5 rounded-2xl hover:bg-blue-700 disabled:bg-gray-300 transition-all shadow-xl shadow-blue-100"
-            >
-              {loading ? "Procesando..." : "Publicar Recurso"}
-            </button>
-          </form>
-        </div>
-
-        {/* Existing Guides Management */}
-        <div className="flex flex-col">
-          <div className="flex items-center justify-between mb-8 px-2">
-            <h2 className="text-xl font-bold text-gray-800">Material Existente</h2>
-            <span className="text-xs bg-gray-100 text-gray-500 px-3 py-1.5 rounded-full font-bold">{guides.length} ARCHIVOS</span>
-          </div>
-          <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-            {guides.length === 0 ? (
-              <div className="text-center py-20 bg-gray-50 rounded-[3rem] border border-dashed border-gray-200">
-                <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-400 italic">No has subido ningún recurso todavía.</p>
-              </div>
-            ) : (
-              guides.map(guide => (
-                <div key={guide.id} className="bg-white p-6 rounded-[2rem] border border-gray-50 flex items-center justify-between hover:shadow-lg transition-all group">
-                  <div className="overflow-hidden">
-                    <h4 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate">{guide.title}</h4>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500 bg-blue-50 px-2 py-0.5 rounded-md">
-                        {guide.subject}
-                      </span>
-                      {guide.topic && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                          • {guide.topic}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <a 
-                      href={guide.url} target="_blank" rel="noopener noreferrer"
-                      className="p-3 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                      title="Ver archivo"
-                    >
-                      <ExternalLink className="w-5 h-5" />
-                    </a>
-                    <button 
-                      onClick={() => handleDelete(guide.id)}
-                      className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                      title="Eliminar"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
+              <div className="grid md:grid-cols-2 gap-5">
+                <div>
+                  <label className="text-xs font-bold uppercase text-gray-400 ml-2 mb-1 block">Materia</label>
+                  <select 
+                    className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-[#FAFAFA]"
+                    value={newGuide.subject} onChange={e => setNewGuide({...newGuide, subject: e.target.value})}
+                  >
+                    <option>Matemática</option>
+                    <option>Física</option>
+                    <option>Programación e IA</option>
+                    <option>Técnicas de Estudio</option>
+                  </select>
                 </div>
-              ))
-            )}
+                <div>
+                  <label className="text-xs font-bold uppercase text-gray-400 ml-2 mb-1 block">Tema</label>
+                  <input type="text" className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-[#FAFAFA]" value={newGuide.topic} onChange={e => setNewGuide({...newGuide, topic: e.target.value})} />
+                </div>
+              </div>
+              <input type="url" placeholder="URL PDF" required className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-[#FAFAFA]" value={newGuide.url} onChange={e => setNewGuide({...newGuide, url: e.target.value})} />
+              <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-bold py-5 rounded-2xl shadow-xl shadow-blue-100">
+                {loading ? "Subiendo..." : "Publicar Guía"}
+              </button>
+            </form>
+          </div>
+          
+          <div className="space-y-4 max-h-[600px] overflow-y-auto">
+            {guides.map(guide => (
+              <div key={guide.id} className="bg-white p-6 rounded-[2rem] border border-gray-50 flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-gray-900">{guide.title}</h4>
+                  <span className="text-[10px] font-bold text-blue-500 uppercase">{guide.subject}</span>
+                </div>
+                <button onClick={() => handleDelete("guides", guide.id)} className="p-3 text-gray-300 hover:text-red-500 transition-all"><Trash2 className="w-5 h-5" /></button>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="grid lg:grid-cols-2 gap-12">
+          {/* Workshops Form */}
+          <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm overflow-y-auto max-h-[80vh]">
+            <h2 className="text-xl font-bold mb-8 flex items-center gap-2 text-gray-800">
+              <Plus className="w-6 h-6 text-blue-600" /> Nuevo Taller / Curso
+            </h2>
+            <form onSubmit={handleAddWorkshop} className="space-y-6">
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-400 ml-2 mb-1 block">Título del Taller</label>
+                <input type="text" required className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-[#FAFAFA]" value={newWorkshop.title} onChange={e => setNewWorkshop({...newWorkshop, title: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-400 ml-2 mb-1 block">Descripción Corta</label>
+                <textarea required className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-[#FAFAFA] h-24 resize-none" value={newWorkshop.description} onChange={e => setNewWorkshop({...newWorkshop, description: e.target.value})} />
+              </div>
+              <div className="grid md:grid-cols-2 gap-5">
+                <div>
+                  <label className="text-xs font-bold uppercase text-gray-400 ml-2 mb-1 block">URL Portada (Imagen)</label>
+                  <input type="url" className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-[#FAFAFA]" value={newWorkshop.coverUrl} onChange={e => setNewWorkshop({...newWorkshop, coverUrl: e.target.value})} />
+                </div>
+                <div>
+                  <label className="text-xs font-bold uppercase text-gray-400 ml-2 mb-1 block">ID Video (Opcional)</label>
+                  <input type="text" placeholder="ID de YouTube o Embed URL" className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-[#FAFAFA]" value={newWorkshop.videoUrl} onChange={e => setNewWorkshop({...newWorkshop, videoUrl: e.target.value})} />
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase text-blue-600">Plan de Estudios (Secciones)</label>
+                  <button 
+                    type="button" 
+                    onClick={() => setNewWorkshop({...newWorkshop, syllabus: [...newWorkshop.syllabus, {title: "", content: ""}]})}
+                    className="text-[10px] font-black bg-blue-50 px-3 py-1 rounded-lg text-blue-600"
+                  >+ AGREGAR SECCIÓN</button>
+                </div>
+                {newWorkshop.syllabus.map((s, i) => (
+                  <div key={i} className="p-5 border border-gray-100 rounded-2xl bg-gray-50/50 space-y-3 relative group">
+                    <input 
+                      placeholder="Título de la sección"
+                      className="w-full bg-transparent font-bold border-b border-gray-200 py-1 outline-none focus:border-blue-500"
+                      value={s.title} 
+                      onChange={e => {
+                        const sy = [...newWorkshop.syllabus];
+                        sy[i].title = e.target.value;
+                        setNewWorkshop({...newWorkshop, syllabus: sy});
+                      }}
+                    />
+                    <textarea 
+                      placeholder="Temas tratados (uno por línea)..."
+                      className="w-full bg-transparent py-1 outline-none h-20 resize-none text-sm"
+                      value={s.content} 
+                      onChange={e => {
+                        const sy = [...newWorkshop.syllabus];
+                        sy[i].content = e.target.value;
+                        setNewWorkshop({...newWorkshop, syllabus: sy});
+                      }}
+                    />
+                    {newWorkshop.syllabus.length > 1 && (
+                      <button 
+                        type="button"
+                        onClick={() => setNewWorkshop({...newWorkshop, syllabus: newWorkshop.syllabus.filter((_, idx) => idx !== i)})}
+                        className="absolute top-2 right-2 text-red-300 hover:text-red-500 hidden group-hover:block"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-bold py-5 rounded-2xl shadow-xl shadow-blue-200">
+                {loading ? "Creando..." : "Publicar Taller"}
+              </button>
+            </form>
+          </div>
+
+          <div className="space-y-4 overflow-y-auto max-h-[80vh]">
+            {workshops.map(w => (
+              <div key={w.id} className="bg-white p-6 rounded-[2rem] border border-gray-50 flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-gray-900">{w.title}</h4>
+                  <p className="text-[10px] text-gray-400">{w.syllabus.length} Secciones</p>
+                </div>
+                <div className="flex gap-2">
+                  <Link to={`/talleres/${w.id}`} className="p-3 text-gray-300 hover:text-blue-500"><ExternalLink className="w-5 h-5" /></Link>
+                  <button onClick={() => handleDelete("workshops", w.id!)} className="p-3 text-gray-300 hover:text-red-500"><Trash2 className="w-5 h-5" /></button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -960,6 +1278,7 @@ export default function App() {
           <Route path="/servicios" element={<ServiciosPage />} />
           <Route path="/modalidad" element={<ModalidadPage />} />
           <Route path="/talleres" element={<TalleresPage />} />
+          <Route path="/talleres/:workshopId" element={<WorkshopDetailPage />} />
           <Route path="/recursos" element={<RecursosPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/admin" element={<AdminDashboard />} />
