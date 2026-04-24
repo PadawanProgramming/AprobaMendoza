@@ -92,17 +92,17 @@ const Navbar = () => {
           <span className="font-semibold text-lg tracking-tight">Aprobá Mendoza</span>
         </Link>
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
-          <Link to="/servicios" className="hover:text-blue-600 transition-colors">Servicios</Link>
-          <Link to="/modalidad" className="hover:text-blue-600 transition-colors">Modalidad</Link>
-          <Link to="/talleres" className="hover:text-blue-600 transition-colors">Talleres</Link>
+          <Link to="/servicios" className="hover:text-blue-600 transition-all hover:-translate-y-0.5">Servicios</Link>
+          <Link to="/modalidad" className="hover:text-blue-600 transition-all hover:-translate-y-0.5">Modalidad</Link>
+          <Link to="/talleres" className="hover:text-blue-600 transition-all hover:-translate-y-0.5">Talleres</Link>
           
           <div 
             className="relative group py-4"
             onMouseEnter={() => setIsRecursosHovered(true)}
             onMouseLeave={() => setIsRecursosHovered(false)}
           >
-            <Link to="/recursos" className="flex items-center gap-1 hover:text-blue-600 transition-colors font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">
-              Recursos
+            <Link to="/recursos" className="flex items-center gap-2 hover:text-blue-600 transition-all font-bold text-blue-600 bg-blue-50/50 hover:bg-blue-50 px-4 py-2 rounded-xl border border-blue-100/50">
+              Recursos Gratis
               <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isRecursosHovered ? 'rotate-180' : ''}`} />
             </Link>
             
@@ -116,7 +116,7 @@ const Navbar = () => {
                 >
                   <Link to="/recursos" className="flex items-center gap-3 p-3 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition-all group">
                     <FileText className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
-                    <span>Guías PDF</span>
+                    <span>Guías PDF Gratuitas</span>
                   </Link>
                   {isAdmin && (
                     <Link to="/admin" className="flex items-center gap-3 p-3 rounded-xl hover:bg-orange-50 text-orange-600 font-bold transition-all group">
@@ -186,7 +186,7 @@ const WhatsAppForm = () => {
             type="text" 
             required 
             placeholder="Tu nombre"
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#25D366] outline-none transition-all"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#25D366] outline-none transition-all text-gray-900 placeholder:text-gray-400"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           />
@@ -196,7 +196,7 @@ const WhatsAppForm = () => {
           <textarea 
             required 
             placeholder="¿En qué te puedo ayudar?"
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#25D366] outline-none transition-all h-32 resize-none"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#25D366] outline-none transition-all h-32 resize-none text-gray-900 placeholder:text-gray-400"
             value={formData.query}
             onChange={(e) => setFormData({ ...formData, query: e.target.value })}
           />
@@ -457,30 +457,35 @@ const HomePage = () => {
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="max-w-4xl mx-auto">
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-[2.5rem] p-8 md:p-12 border border-gray-100 shadow-sm flex flex-col md:flex-row items-center gap-10">
+            <motion.div 
+              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              viewport={{ once: true }}
+              className="bg-gradient-to-br from-gray-50 to-white rounded-[2.5rem] p-8 md:p-12 border border-gray-100 shadow-xl shadow-gray-100/50 flex flex-col md:flex-row items-center gap-10"
+            >
               <div className="w-48 h-48 md:w-56 md:h-56 flex-shrink-0 relative group">
                 <div className="absolute inset-0 bg-blue-600 rounded-full blur-2xl opacity-20 group-hover:opacity-30 transition-opacity translate-y-4"></div>
                 <img 
                   src="https://i.imgur.com/GAskzf3.jpg" 
                   alt="Antú Boccalandro" 
-                  className="w-full h-full object-cover rounded-full border-4 border-white shadow-lg relative z-10"
+                  className="w-full h-full object-cover rounded-full border-4 border-white shadow-lg relative z-10 hover:scale-105 transition-transform duration-500"
                 />
               </div>
               <div className="text-center md:text-left">
                 <span className="text-blue-600 font-bold text-sm uppercase tracking-widest mb-2 block">Sobre Mí</span>
                 <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">Antú Boccalandro</h2>
                 <div className="space-y-4">
-                  <div className="flex items-center gap-4 text-gray-700 bg-white px-4 py-3 rounded-2xl border border-gray-100 shadow-sm">
+                  <div className="flex items-center gap-4 text-gray-700 bg-white/80 backdrop-blur-sm px-6 py-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                     <GraduationCap className="w-5 h-5 text-blue-600" />
-                    <span className="font-medium">Estudiante de Ciencias de la Computación</span>
+                    <span className="font-semibold text-gray-800">Estudiante de Ciencias de la Computación</span>
                   </div>
-                  <div className="flex items-center gap-4 text-gray-700 bg-white px-4 py-3 rounded-2xl border border-gray-100 shadow-sm">
+                  <div className="flex items-center gap-4 text-gray-700 bg-white/80 backdrop-blur-sm px-6 py-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                     <MapPin className="w-5 h-5 text-blue-600" />
-                    <span className="font-medium">Chacras de Coria, Mendoza</span>
+                    <span className="font-semibold text-gray-800">Chacras de Coria, Mendoza</span>
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -626,12 +631,12 @@ const RecursosPage = () => {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="py-24 px-6 max-w-7xl mx-auto min-h-[60vh]">
-      <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-blue-600 mb-12 transition-colors">
-        <ArrowLeft className="w-5 h-5" /> Volver
+      <Link to="/" className="inline-flex items-center gap-2 text-gray-400 hover:text-blue-600 mb-12 transition-colors group">
+        <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Volver
       </Link>
       <div className="text-center mb-16">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">Recursos Gratuitos</h1>
-        <p className="text-gray-500">Material de apoyo seleccionado para alumnos de Aprobá Mendoza.</p>
+        <h1 className="text-4xl md:text-5xl font-bold mb-4">Recursos Gratis</h1>
+        <p className="text-gray-500 max-w-xl mx-auto">Explora nuestro material gratuito diseñado para acompañar tu proceso de aprendizaje.</p>
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -772,7 +777,7 @@ const AdminDashboard = () => {
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
         <h1 className="text-3xl font-bold flex items-center gap-3">
           <Settings className="w-8 h-8 text-blue-600" />
-          Dashboard de Recursos
+          Dashboard de Recursos Gratis
         </h1>
         <button 
           onClick={() => { logout(); navigate("/"); window.location.reload(); }} 
