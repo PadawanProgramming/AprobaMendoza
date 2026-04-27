@@ -26,37 +26,39 @@ import {
   Trash2,
   Lock,
   LogOut,
-  Settings
+  Settings,
+  X,
+  Upload,
+  Zap
 } from "lucide-react";
-import { 
-  collection, 
-  addDoc, 
-  onSnapshot, 
-  query, 
-  orderBy, 
-  deleteDoc, 
-  doc,
-  getDoc,
-  Timestamp
-} from "firebase/firestore";
 import { useParams } from "react-router-dom";
 
 // --- Types ---
 interface WorkshopSection {
+  id?: number;
   title: string;
   content: string;
 }
 
 interface Workshop {
-  id?: string;
+  id?: number;
   title: string;
   description: string;
   coverUrl?: string;
   videoUrl?: string;
   syllabus: WorkshopSection[];
-  createdAt: any;
+  createdAt: string;
 }
-import { db } from "./firebase";
+
+interface Guide {
+  id?: number;
+  title: string;
+  subject: string;
+  topic?: string;
+  url: string;
+  fileName?: string;
+  createdAt: string;
+}
 
 // --- Constants & Styles ---
 const fadeIn = {
@@ -77,11 +79,21 @@ const staggerContainer = {
 const useAuth = () => {
   const [isAdmin, setIsAdmin] = useState(() => localStorage.getItem("is_admin") === "true");
 
-  const login = (user: string, pass: string) => {
-    if (user === "padawan" && pass === "24/1/2007") {
-      localStorage.setItem("is_admin", "true");
-      setIsAdmin(true);
-      return true;
+  const login = async (user: string, pass: string) => {
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user, pass })
+      });
+      const data = await res.json();
+      if (data.success) {
+        localStorage.setItem("is_admin", "true");
+        setIsAdmin(true);
+        return true;
+      }
+    } catch (e) {
+      console.error(e);
     }
     return false;
   };
@@ -94,6 +106,21 @@ const useAuth = () => {
   return { isAdmin, login, logout };
 };
 
+// --- Logo Component ---
+const Logo = ({ size = "md" }: { size?: "sm" | "md" | "lg" }) => {
+  const dimensions = {
+    sm: "w-8 h-8 text-sm",
+    md: "w-10 h-10 text-xl",
+    lg: "w-12 h-12 text-2xl"
+  }[size];
+
+  return (
+    <div className={`${dimensions} bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold transition-transform hover:scale-110 shadow-lg shadow-blue-200`}>
+      A
+    </div>
+  );
+};
+
 // --- Components ---
 
 const Navbar = () => {
@@ -104,9 +131,7 @@ const Navbar = () => {
     <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 group">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl transition-transform group-hover:scale-110">
-            A
-          </div>
+          <Logo />
           <span className="font-semibold text-lg tracking-tight">Aprobá Mendoza</span>
         </Link>
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
@@ -114,6 +139,13 @@ const Navbar = () => {
           <Link to="/modalidad" className="hover:text-blue-600 transition-all hover:-translate-y-0.5">Modalidad</Link>
           <Link to="/talleres" className="hover:text-blue-600 transition-all hover:-translate-y-0.5">Talleres</Link>
           
+          {isAdmin && (
+            <Link to="/admin" className="text-orange-600 font-bold hover:text-orange-700 transition-all hover:-translate-y-0.5 flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-xl border border-orange-100">
+              <Settings className="w-4 h-4" />
+              Panel Admin
+            </Link>
+          )}
+
           <div 
             className="relative group py-4"
             onMouseEnter={() => setIsRecursosHovered(true)}
@@ -136,12 +168,6 @@ const Navbar = () => {
                     <FileText className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
                     <span>Guías PDF Gratuitas</span>
                   </Link>
-                  {isAdmin && (
-                    <Link to="/admin" className="flex items-center gap-3 p-3 rounded-xl hover:bg-orange-50 text-orange-600 font-bold transition-all group">
-                      <Settings className="w-5 h-5" />
-                      <span>Panel Admin</span>
-                    </Link>
-                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -236,6 +262,58 @@ const WhatsAppForm = () => {
 const HomePage = () => {
   return (
     <motion.div initial="initial" animate="animate" exit={{ opacity: 0 }}>
+      {/* Urgency / Exam Help Section */}
+      <section className="pt-28 pb-12 bg-white relative">
+        <div className="max-w-7xl mx-auto px-6">
+          <motion.div 
+            whileHover={{ scale: 1.01 }}
+            className="bg-gradient-to-r from-red-600 to-red-700 rounded-[3rem] p-8 md:p-14 text-white relative overflow-hidden shadow-2xl shadow-red-200 border border-red-500"
+          >
+            {/* Background elements */}
+            <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/10 blur-[100px] rounded-full" />
+            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-black/10 blur-[80px] rounded-full" />
+            
+            <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-10">
+              <div className="text-center lg:text-left max-w-2xl">
+                <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-[0.2em] mb-8 border border-white/30">
+                  <Zap className="w-4 h-4 text-yellow-300 fill-yellow-300" />
+                  Atención Inmediata
+                </div>
+                <h2 className="text-4xl md:text-6xl font-black mb-8 leading-[1.05] tracking-tight">
+                  ¿Tenés un examen <br />
+                  <span className="text-yellow-300 relative">
+                    ¡MAÑANA MISMO!
+                    <svg className="absolute -bottom-2 left-0 w-full" height="10" viewBox="0 0 200 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M1 9C50 1 150 1 199 9" stroke="#FDE047" strokeWidth="3" strokeLinecap="round"/>
+                    </svg>
+                  </span>
+                </h2>
+                <p className="text-red-50 text-xl md:text-2xl font-medium opacity-90 leading-relaxed mb-4">
+                  No entres en pánico. Podemos prepararlo juntos en tiempo récord. 
+                </p>
+                <div className="flex items-center justify-center lg:justify-start gap-3 text-red-100 font-bold">
+                  <CheckCircle2 className="w-5 h-5" />
+                  <span>Respuesta en menos de 30 minutos</span>
+                </div>
+              </div>
+              
+              <div className="flex-shrink-0 w-full lg:w-auto">
+                <a 
+                  href={`https://wa.me/5492617204802?text=${encodeURIComponent("HOLA ANTÚ! NECESITO AYUDA YA MISMO! Tengo un examen urgente que preparar y necesito clases hoy.")}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="group relative flex items-center justify-center gap-4 bg-white text-red-600 px-12 py-7 rounded-[2rem] font-black text-2xl hover:bg-yellow-300 hover:text-red-700 transition-all shadow-2xl active:scale-95 w-full lg:w-auto"
+                >
+                  <span className="relative z-10">¡AYUDA YA!</span>
+                  <ChevronRight className="w-8 h-8 group-hover:translate-x-2 transition-transform" />
+                  {/* Decorative pulse ring */}
+                  <div className="absolute inset-0 rounded-[2rem] border-4 border-white/50 animate-ping pointer-events-none" />
+                </a>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Hero Section */}
       <section className="relative py-24 md:py-32 overflow-hidden bg-dot-pattern">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#FAFAFA] pointer-events-none"></div>
@@ -512,6 +590,41 @@ const HomePage = () => {
 };
 
 const ServiciosPage = () => {
+  const [selectedService, setSelectedService] = useState<{ title: string; desc: string } | null>(null);
+
+  const services = [
+    { 
+      title: "Clases particulares por tema específico", 
+      desc: "Nivel secundaria y universidad. Explicación detallada de conceptos puntuales que te cuestan entender.", 
+      icon: <BookOpen />,
+    },
+    { 
+      title: "Preparación para exámen urgente", 
+      desc: "Sesiones intensivas enfocadas en los temas clave del examen. Estrategias de resolución rápida.", 
+      icon: <Calculator />,
+    },
+    { 
+      title: "Ayuda con trabajos prácticos", 
+      desc: "Guía y resolución paso a paso para que aprendas mientras completas tus entregas obligatorias.", 
+      icon: <FileText />,
+    },
+    { 
+      title: "Ayuda con proyectos finales", 
+      desc: "Apoyo técnico en programación, diseño de algoritmos o proyectos de ingeniería.", 
+      icon: <Cpu />,
+    },
+    { 
+      title: "Preparación para pre-universitarios", 
+      desc: "Seguimiento completo para el ingreso a Ingeniería y Ciencias Económicas. Desde la base hasta el nivel requerido.", 
+      icon: <GraduationCap />,
+    },
+    { 
+      title: "Aspirantes de ingreso", 
+      desc: "Nivelatorio para quienes están por arrancar la facultad y quieren ir con ventaja en matemática y física.", 
+      icon: <TrendingUp />,
+    }
+  ];
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="py-24 px-6 max-w-7xl mx-auto min-h-[60vh]">
       <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-blue-600 mb-12 transition-colors">
@@ -523,48 +636,105 @@ const ServiciosPage = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {[
-          { 
-            title: "Clases particulares por tema específico", 
-            desc: "Nivel secundaria y universidad. Explicación detallada de conceptos puntuales que te cuestan entender.", 
-            icon: <BookOpen />,
-          },
-          { 
-            title: "Preparación para exámen urgente", 
-            desc: "Sesiones intensivas enfocadas en los temas clave del examen. Estrategias de resolución rápida.", 
-            icon: <Calculator />,
-          },
-          { 
-            title: "Ayuda con trabajos prácticos", 
-            desc: "Guía y resolución paso a paso para que aprendas mientras completas tus entregas obligatorias.", 
-            icon: <FileText />,
-          },
-          { 
-            title: "Ayuda con proyectos finales", 
-            desc: "Apoyo técnico en programación, diseño de algoritmos o proyectos de ingeniería.", 
-            icon: <Cpu />,
-          },
-          { 
-            title: "Preparación para pre-universitarios", 
-            desc: "Seguimiento completo para el ingreso a Ingeniería y Ciencias Económicas. Desde la base hasta el nivel requerido.", 
-            icon: <GraduationCap />,
-          },
-          { 
-            title: "Aspirantes de ingreso", 
-            desc: "Nivelatorio para quienes están por arrancar la facultad y quieren ir con ventaja en matemática y física.", 
-            icon: <TrendingUp />,
-          }
-        ].map((s, i) => (
-          <div key={i} className="p-8 bg-white rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group">
+        {services.map((s, i) => (
+          <button 
+            key={i} 
+            onClick={() => setSelectedService(s)}
+            className="p-8 bg-white rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group text-left"
+          >
             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 bg-blue-50 text-blue-600 group-hover:scale-110 transition-transform`}>
               {s.icon}
             </div>
             <h3 className="text-xl font-bold mb-3">{s.title}</h3>
             <p className="text-gray-600 text-sm leading-relaxed">{s.desc}</p>
-          </div>
+            <div className="mt-6 text-blue-600 font-bold text-sm flex items-center gap-2 group-hover:gap-3 transition-all">
+              Me interesa <ChevronRight className="w-4 h-4" />
+            </div>
+          </button>
         ))}
       </div>
+
+      <AnimatePresence>
+        {selectedService && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedService(null)}
+              className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-lg bg-white rounded-[3rem] p-10 shadow-2xl overflow-hidden"
+            >
+              <button 
+                onClick={() => setSelectedService(null)}
+                className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              
+              <div className="mb-8">
+                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4">
+                  <MessageSquare className="w-6 h-6" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900">Consultar por</h3>
+                <p className="text-blue-600 font-medium">{selectedService.title}</p>
+              </div>
+
+              <ServiceWhatsAppForm serviceTitle={selectedService.title} onClose={() => setSelectedService(null)} />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
+  );
+};
+
+const ServiceWhatsAppForm = ({ serviceTitle, onClose }: { serviceTitle: string; onClose: () => void }) => {
+  const [formData, setFormData] = useState({ name: "", query: "" });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const message = `Hola Antú! Mi nombre es ${formData.name}. Estoy interesado en el servicio de "${serviceTitle}".\n\nConsulta:\n${formData.query}`;
+    const encMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/5492617204802?text=${encMessage}`, "_blank");
+    onClose();
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-xs font-bold uppercase text-gray-400 mb-1 ml-1">Tu Nombre</label>
+        <input 
+          type="text" 
+          required 
+          placeholder="Ej: Juan Pérez"
+          className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 outline-none focus:ring-2 focus:ring-blue-600 transition-all"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+        />
+      </div>
+      <div>
+        <label className="block text-xs font-bold uppercase text-gray-400 mb-1 ml-1">Mensaje o duda</label>
+        <textarea 
+          required 
+          placeholder="Escribe aquí tu consulta..."
+          className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-gray-50 outline-none focus:ring-2 focus:ring-blue-600 transition-all h-32 resize-none"
+          value={formData.query}
+          onChange={(e) => setFormData({ ...formData, query: e.target.value })}
+        />
+      </div>
+      <button 
+        type="submit"
+        className="w-full bg-[#25D366] text-white py-5 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-[#128C7E] transition-all shadow-xl shadow-green-100"
+      >
+        <Send className="w-5 h-5" /> Enviar Consulta
+      </button>
+    </form>
   );
 };
 
@@ -607,12 +777,18 @@ const TalleresPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, "workshops"), orderBy("createdAt", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setWorkshops(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Workshop)));
-      setLoading(false);
-    });
-    return () => unsubscribe();
+    const fetchWorkshops = async () => {
+      try {
+        const res = await fetch('/api/workshops');
+        const data = await res.json();
+        setWorkshops(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchWorkshops();
   }, []);
 
   return (
@@ -690,10 +866,10 @@ const WorkshopDetailPage = () => {
     const fetchWorkshop = async () => {
       if (!workshopId) return;
       try {
-        const docRef = doc(db, "workshops", workshopId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setWorkshop({ id: docSnap.id, ...docSnap.data() } as Workshop);
+        const res = await fetch(`/api/workshops/${workshopId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setWorkshop(data);
         }
       } catch (err) {
         console.error(err);
@@ -843,14 +1019,22 @@ const WorkshopDetailPage = () => {
 };
 
 const RecursosPage = () => {
-  const [guides, setGuides] = useState<any[]>([]);
+  const [guides, setGuides] = useState<Guide[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, "guides"), orderBy("createdAt", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setGuides(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-    return () => unsubscribe();
+    const fetchGuides = async () => {
+      try {
+        const res = await fetch('/api/guides');
+        const data = await res.json();
+        setGuides(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchGuides();
   }, []);
 
   const subjects = ["Matemática", "Física", "Programación e IA", "Técnicas de Estudio"];
@@ -909,10 +1093,10 @@ const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (login(username, password)) {
-      window.location.reload(); // Force refresh to update useAuth state across components
+    const success = await login(username, password);
+    if (success) {
       navigate("/admin");
     } else {
       setError("Usuario o contraseña incorrectos");
@@ -957,7 +1141,7 @@ const LoginPage = () => {
 
 const AdminDashboard = () => {
   const { isAdmin, logout } = useAuth();
-  const [guides, setGuides] = useState<any[]>([]);
+  const [guides, setGuides] = useState<Guide[]>([]);
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
   
   const [tab, setTab] = useState<"guides" | "workshops">("guides");
@@ -965,43 +1149,62 @@ const AdminDashboard = () => {
   
   // States for new items
   const [newGuide, setNewGuide] = useState({ title: "", subject: "Matemática", topic: "", url: "" });
-  const [newWorkshop, setNewWorkshop] = useState<Workshop>({
+  const [guideFile, setGuideFile] = useState<File | null>(null);
+
+  const [newWorkshop, setNewWorkshop] = useState<any>({
     title: "",
     description: "",
-    coverUrl: "",
     videoUrl: "",
-    syllabus: [{ title: "", content: "" }],
-    createdAt: null
+    syllabus: [{ title: "", content: "" }]
   });
+  const [workshopCover, setWorkshopCover] = useState<File | null>(null);
 
   const navigate = useNavigate();
+
+  const fetchData = async () => {
+    try {
+      const gRes = await fetch('/api/guides');
+      const gData = await gRes.json();
+      setGuides(gData);
+
+      const wRes = await fetch('/api/workshops');
+      const wData = await wRes.json();
+      setWorkshops(wData);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   useEffect(() => {
     if (!isAdmin) {
       navigate("/login");
       return;
     }
-    
-    const unsubscribeGuides = onSnapshot(query(collection(db, "guides"), orderBy("createdAt", "desc")), (s) => 
-      setGuides(s.docs.map(d => ({ id: d.id, ...d.data() })))
-    );
-    
-    const unsubscribeWorkshops = onSnapshot(query(collection(db, "workshops"), orderBy("createdAt", "desc")), (s) => 
-      setWorkshops(s.docs.map(d => ({ id: d.id, ...d.data() } as Workshop)))
-    );
-
-    return () => {
-      unsubscribeGuides();
-      unsubscribeWorkshops();
-    };
+    fetchData();
   }, [isAdmin, navigate]);
 
   const handleAddGuide = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await addDoc(collection(db, "guides"), { ...newGuide, createdAt: Timestamp.now() });
+      const formData = new FormData();
+      formData.append('title', newGuide.title);
+      formData.append('subject', newGuide.subject);
+      formData.append('topic', newGuide.topic);
+      if (guideFile) {
+        formData.append('file', guideFile);
+      } else {
+        formData.append('url', newGuide.url);
+      }
+
+      await fetch('/api/guides', {
+        method: 'POST',
+        body: formData
+      });
+
       setNewGuide({ title: "", subject: "Matemática", topic: "", url: "" });
+      setGuideFile(null);
+      fetchData();
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
@@ -1009,25 +1212,36 @@ const AdminDashboard = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await addDoc(collection(db, "workshops"), { 
-        ...newWorkshop, 
-        syllabus: newWorkshop.syllabus.filter(s => s.title.trim()),
-        createdAt: Timestamp.now() 
+      const formData = new FormData();
+      formData.append('title', newWorkshop.title);
+      formData.append('description', newWorkshop.description);
+      formData.append('videoUrl', newWorkshop.videoUrl);
+      formData.append('syllabus', JSON.stringify(newWorkshop.syllabus.filter((s:any) => s.title.trim())));
+      
+      if (workshopCover) {
+        formData.append('cover', workshopCover);
+      }
+
+      await fetch('/api/workshops', {
+        method: 'POST',
+        body: formData
       });
+
       setNewWorkshop({
         title: "",
         description: "",
-        coverUrl: "",
         videoUrl: "",
-        syllabus: [{ title: "", content: "" }],
-        createdAt: null
+        syllabus: [{ title: "", content: "" }]
       });
+      setWorkshopCover(null);
+      fetchData();
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
-  const handleDelete = async (coll: string, id: string) => {
+  const handleDelete = async (coll: "guides" | "workshops", id: number) => {
     if (window.confirm("¿Estás seguro de que deseas eliminar este item?")) {
-      await deleteDoc(doc(db, coll, id));
+      await fetch(`/api/${coll}/${id}`, { method: 'DELETE' });
+      fetchData();
     }
   };
 
@@ -1098,8 +1312,32 @@ const AdminDashboard = () => {
                   <input type="text" className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-[#FAFAFA]" value={newGuide.topic} onChange={e => setNewGuide({...newGuide, topic: e.target.value})} />
                 </div>
               </div>
-              <input type="url" placeholder="URL PDF" required className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-[#FAFAFA]" value={newGuide.url} onChange={e => setNewGuide({...newGuide, url: e.target.value})} />
-              <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-bold py-5 rounded-2xl shadow-xl shadow-blue-100">
+              
+              <div className="space-y-3">
+                <label className="text-xs font-bold uppercase text-gray-400 ml-2 mb-1 block">Archivo PDF (Subir directo)</label>
+                <div className="relative group">
+                  <input 
+                    type="file" 
+                    accept=".pdf"
+                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                    onChange={(e) => setGuideFile(e.target.files?.[0] || null)}
+                  />
+                  <div className="w-full px-5 py-6 rounded-2xl border-2 border-dashed border-gray-100 bg-gray-50 flex items-center justify-center gap-3 text-gray-400 group-hover:border-blue-200 group-hover:bg-blue-50 transition-all">
+                    <Upload className="w-5 h-5" />
+                    <span className="font-medium text-sm">
+                      {guideFile ? guideFile.name : "Seleccionar archivo PDF"}
+                    </span>
+                  </div>
+                </div>
+                {!guideFile && (
+                  <>
+                    <p className="text-center text-[10px] text-gray-400 font-bold uppercase">o pega un link externo</p>
+                    <input type="url" placeholder="URL PDF Externo" className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-[#FAFAFA]" value={newGuide.url} onChange={e => setNewGuide({...newGuide, url: e.target.value})} />
+                  </>
+                )}
+              </div>
+
+              <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-bold py-5 rounded-2xl shadow-xl shadow-blue-100 mt-4">
                 {loading ? "Subiendo..." : "Publicar Guía"}
               </button>
             </form>
@@ -1135,12 +1373,25 @@ const AdminDashboard = () => {
               </div>
               <div className="grid md:grid-cols-2 gap-5">
                 <div>
-                  <label className="text-xs font-bold uppercase text-gray-400 ml-2 mb-1 block">URL Portada (Imagen)</label>
-                  <input type="url" className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-[#FAFAFA]" value={newWorkshop.coverUrl} onChange={e => setNewWorkshop({...newWorkshop, coverUrl: e.target.value})} />
+                  <label className="text-xs font-bold uppercase text-gray-400 ml-2 mb-1 block">Foto de Portada</label>
+                  <div className="relative group">
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                      onChange={(e) => setWorkshopCover(e.target.files?.[0] || null)}
+                    />
+                    <div className="w-full px-5 py-4 rounded-2xl border-2 border-dashed border-gray-100 bg-gray-50 flex items-center justify-center gap-3 text-gray-400 group-hover:border-blue-200 transition-all">
+                      <Upload className="w-4 h-4" />
+                      <span className="text-[10px] font-bold">
+                        {workshopCover ? workshopCover.name : "Subir Imagen"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
                 <div>
-                  <label className="text-xs font-bold uppercase text-gray-400 ml-2 mb-1 block">ID Video (Opcional)</label>
-                  <input type="text" placeholder="ID de YouTube o Embed URL" className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-[#FAFAFA]" value={newWorkshop.videoUrl} onChange={e => setNewWorkshop({...newWorkshop, videoUrl: e.target.value})} />
+                  <label className="text-xs font-bold uppercase text-gray-400 ml-2 mb-1 block">URL Video Youtube (Embed)</label>
+                  <input type="text" placeholder="https://youtube.com/embed/..." className="w-full px-5 py-4 rounded-2xl border border-gray-100 bg-[#FAFAFA]" value={newWorkshop.videoUrl} onChange={e => setNewWorkshop({...newWorkshop, videoUrl: e.target.value})} />
                 </div>
               </div>
               
